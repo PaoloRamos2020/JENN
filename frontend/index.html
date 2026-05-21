@@ -85,51 +85,28 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
 
     <title>VEDA | Real Estate & Property Management</title>
     <script type="module" crossorigin src="/assets/index-DIj0hO38.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-CegpoAvM.css">
 
     <style>
-      #veda-greeting {
-        display: block;
-        text-align: center;
-        font-family: 'Cormorant Garamond', serif;
-        font-style: italic;
-        font-weight: 400;
-        font-size: clamp(0.65rem, 1.1vw, 0.85rem);
-        letter-spacing: 0.45em;
-        color: #c9b593;
-        margin-bottom: 1.1rem;
+      #veda-bounce {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+        font-family: 'Pacifico', cursive;
+        font-size: clamp(2.8rem, 5.5vw, 5rem);
+        white-space: nowrap;
         pointer-events: none;
         user-select: none;
-      }
-      #veda-greeting span {
-        display: inline-block;
-        opacity: 0;
-        transform: translateY(9px);
-        animation: veda-letter-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      }
-      #veda-greeting-line {
-        display: block;
-        width: 28px;
-        height: 1px;
-        background: #c9b593;
-        margin: 0 auto 1.1rem;
-        opacity: 0;
-        animation: veda-line-appear 1s ease forwards;
-        pointer-events: none;
-      }
-      @keyframes veda-letter-rise {
-        to { opacity: 0.82; transform: translateY(0); }
-      }
-      @keyframes veda-line-appear {
-        to { opacity: 0.4; }
-      }
-      @keyframes veda-breathe {
-        0%, 100% { opacity: 0.6; }
-        50%       { opacity: 0.92; }
+        will-change: transform;
+        text-shadow:
+          0 2px 12px rgba(0,0,0,0.25),
+          0 0  30px rgba(0,0,0,0.12);
+        transition: color 0.4s ease;
       }
     </style>
   </head>
@@ -137,50 +114,74 @@
     <div id="root"></div>
     <script>
       (function () {
-        var MSG   = 'Good Morning Sunshine!!!';
-        var DELAY = 0.32;   /* seconds before first letter */
-        var STEP  = 0.055;  /* seconds between letters     */
-        var done  = false;
+        var TEXT   = 'Good Morning Sunshine!!!';
+        var SPEED  = 2.2;        /* px per frame            */
+        var RPF    = 1.4;        /* degrees rotation/frame  */
+        var COLORS = ['#c9b593','#7a8b6e','#f5f1eb','#c9b593','#d4a96a','#8fa67e'];
+        var ci     = 0;
 
-        function inject() {
-          if (done) return;
-          var anchor = document.querySelector('img[alt="VEDA"]');
-          if (!anchor) return;
-          done = true;
+        var el = document.createElement('div');
+        el.id  = 'veda-bounce';
+        el.setAttribute('aria-hidden', 'true');
+        el.textContent = TEXT;
+        document.body.appendChild(el);
+        el.style.color = COLORS[ci];
 
-          /* thin gold rule */
-          var line = document.createElement('span');
-          line.id = 'veda-greeting-line';
-          var lastLetterDelay = DELAY + (MSG.length - 1) * STEP;
-          line.style.animationDelay = (lastLetterDelay + 0.5) + 's';
-          anchor.parentNode.insertBefore(line, anchor);
+        /* wait one frame so the browser knows the element's size */
+        requestAnimationFrame(function () {
+          var W  = el.offsetWidth  || 500;
+          var H  = el.offsetHeight || 80;
 
-          /* greeting text */
-          var el = document.createElement('div');
-          el.id = 'veda-greeting';
-          el.setAttribute('aria-hidden', 'true');
-          el.innerHTML = MSG.split('').map(function (ch, i) {
-            var delay = DELAY + i * STEP;
-            return '<span style="animation-delay:' + delay + 's">'
-                   + (ch === ' ' ? '&nbsp;' : ch)
-                   + '</span>';
-          }).join('');
-          anchor.parentNode.insertBefore(el, line);
+          /* start roughly centred */
+          var x  = (window.innerWidth  - W) / 2;
+          var y  = (window.innerHeight - H) / 2;
 
-          /* after reveal → gentle breathe */
-          var breatheStart = lastLetterDelay + 1.2;
-          setTimeout(function () {
-            el.querySelectorAll('span').forEach(function (s) {
-              s.style.animation = 'veda-breathe 4s ease-in-out infinite';
-              s.style.opacity   = '0.82';
-            });
-          }, breatheStart * 1000);
-        }
+          /* random launch angle, avoid near-horizontal/vertical */
+          var ang = (Math.random() * 60 + 25) * (Math.PI / 180);
+          var dx  = Math.cos(ang) * SPEED * (Math.random() < 0.5 ? 1 : -1);
+          var dy  = Math.sin(ang) * SPEED * (Math.random() < 0.5 ? 1 : -1);
+          var rot = 0;
 
-        var obs = new MutationObserver(inject);
-        obs.observe(document.documentElement, { childList: true, subtree: true });
-        setTimeout(function () { obs.disconnect(); }, 10000);
-        document.addEventListener('DOMContentLoaded', inject);
+          function bounce() {
+            var vw = window.innerWidth;
+            var vh = window.innerHeight;
+
+            x += dx;
+            y += dy;
+
+            var hit = false;
+            if (x <= 0)        { x = 0;      dx =  Math.abs(dx); hit = true; }
+            if (x + W >= vw)   { x = vw - W; dx = -Math.abs(dx); hit = true; }
+            if (y <= 0)        { y = 0;      dy =  Math.abs(dy); hit = true; }
+            if (y + H >= vh)   { y = vh - H; dy = -Math.abs(dy); hit = true; }
+
+            /* colour swap + quick pop on wall hit */
+            if (hit) {
+              ci = (ci + 1) % COLORS.length;
+              el.style.color = COLORS[ci];
+              el.style.textShadow =
+                '0 0 40px ' + COLORS[ci] + ', 0 2px 12px rgba(0,0,0,0.3)';
+              setTimeout(function () {
+                el.style.textShadow =
+                  '0 2px 12px rgba(0,0,0,0.25), 0 0 30px rgba(0,0,0,0.12)';
+              }, 300);
+            }
+
+            rot += RPF;
+            el.style.transform =
+              'translate(' + x + 'px,' + y + 'px) rotate(' + rot + 'deg)';
+
+            requestAnimationFrame(bounce);
+          }
+
+          /* recalculate W/H on resize */
+          window.addEventListener('resize', function () {
+            W = el.offsetWidth  || W;
+            H = el.offsetHeight || H;
+          });
+
+          bounce();
+        });
       })();
     </script>
   </body>
